@@ -205,3 +205,32 @@ def test_compare():
 
     assert 0.94 * result.mean() <= compare.mean() <= 1.06 * result.mean()
     assert 0.94 * result.std() <= compare.std() <= 1.06 * result.std()
+
+
+class _ScaledGenerator(nn.Module):
+    """Generator whose images change faster along the latent path for a larger ``scale``."""
+
+    def __init__(self, scale: float) -> None:
+        super().__init__()
+        self.scale = scale
+
+    def forward(self, z):
+        return (z[:, :3, None, None] * self.scale).expand(-1, 3, 8, 8)
+
+    def sample(self, num_samples):
+        return torch.randn(num_samples, 4)
+
+
+class _MeanAbsoluteDifference(nn.Module):
+    def forward(self, img1, img2):
+        return (img1 - img2).abs().flatten(1).mean(1)
+
+
+def test_lower_ppl_is_better():
+    """Check that a smoother generator gets a lower score, which ``higher_is_better`` must reflect."""
+    scores = []
+    for scale in (1.0, 50.0):
+        metric = PerceptualPathLength(num_samples=20, batch_size=10, sim_net=_MeanAbsoluteDifference(), resize=None)
+        scores.append(metric(_ScaledGenerator(scale))[0])
+    assert scores[0] < scores[1]
+    assert PerceptualPathLength.higher_is_better is False
