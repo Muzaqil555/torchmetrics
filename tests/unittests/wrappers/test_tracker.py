@@ -23,6 +23,7 @@ from torchmetrics.classification import (
     MulticlassPrecision,
     MulticlassRecall,
 )
+from torchmetrics.clustering import AdjustedMutualInfoScore, AdjustedRandScore, NormalizedMutualInfoScore, RandScore
 from torchmetrics.regression import MeanAbsoluteError, MeanSquaredError
 from torchmetrics.utilities.imports import _MATPLOTLIB_AVAILABLE
 from torchmetrics.wrappers import ClasswiseWrapper, MetricTracker, MultioutputWrapper
@@ -249,6 +250,23 @@ def test_tracker_higher_is_better_integration(base_metric):
             else:
                 collection_higher_is_better.append(m.higher_is_better)
         assert tracker.maximize == collection_higher_is_better
+
+
+@pytest.mark.parametrize(
+    "base_metric",
+    [AdjustedMutualInfoScore(), AdjustedRandScore(), NormalizedMutualInfoScore(), RandScore()],
+)
+def test_tracker_clustering_scores_keep_best_step(base_metric):
+    """Check that clustering scores where 1 is a perfect match can be tracked without `maximize`."""
+    target = torch.tensor([0, 0, 1, 1, 2, 2])
+    tracker = MetricTracker(base_metric)
+    for preds in (target, torch.tensor([0, 1, 1, 2, 2, 0])):
+        tracker.increment()
+        tracker.update(preds, target)
+
+    best, step = tracker.best_metric(return_step=True)
+    assert best == pytest.approx(1.0)
+    assert step == 0
 
 
 @pytest.mark.skipif(not _MATPLOTLIB_AVAILABLE, reason="matplotlib not available")

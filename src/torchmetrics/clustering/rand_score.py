@@ -63,7 +63,7 @@ class RandScore(Metric):
     """
 
     is_differentiable = True
-    higher_is_better = None
+    higher_is_better = True
     full_state_update: bool = False
     plot_lower_bound: float = 0.0
     preds: List[Tensor]
