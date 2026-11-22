@@ -24,9 +24,10 @@ from fairlearn.metrics import MetricFrame, selection_rate, true_positive_rate
 from scipy.special import expit as sigmoid
 from torch import Tensor
 
-from torchmetrics import Metric
+from torchmetrics import Metric, MetricCollection
 from torchmetrics.classification.group_fairness import BinaryFairness, BinaryGroupStatRates
 from torchmetrics.functional.classification.group_fairness import binary_fairness, binary_groups_stat_rates
+from torchmetrics.wrappers import MetricTracker
 from unittests import THRESHOLD
 from unittests._helpers import seed_all
 from unittests._helpers.testers import (
@@ -94,6 +95,23 @@ def test_binary_group_stat_rates_rejects_invalid_group_ids(groups: Tensor) -> No
     metric = BinaryGroupStatRates(num_groups=2)
     with pytest.raises(ValueError, match="group identifiers"):
         metric.update(preds, target, groups)
+
+
+def test_binary_fairness_tracker_keeps_fairest_step() -> None:
+    """Test that `MetricTracker` treats a ratio closer to 1 as better."""
+    groups = torch.tensor([0, 0, 0, 0, 1, 1, 1, 1])
+    target = torch.ones(8, dtype=torch.long)
+    fairer = torch.tensor([1, 1, 1, 0, 1, 1, 1, 1])  # ratio 0.75
+    less_fair = torch.tensor([1, 0, 0, 0, 1, 1, 1, 1])  # ratio 0.25
+
+    tracker = MetricTracker(MetricCollection({"fairness": BinaryFairness(2, task="equal_opportunity")}))
+    for preds in (fairer, less_fair):
+        tracker.increment()
+        tracker.update(preds, target, groups)
+
+    best, step = tracker.best_metric(return_step=True)
+    assert best == {"EO_0_1": 0.75}
+    assert step == {"EO_0_1": 0}
 
 
 def _reference_fairlearn_binary(preds, target, groups, ignore_index):
