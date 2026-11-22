@@ -873,6 +873,37 @@ def test_plot_methods_retrieval(metric_class, preds, target, indexes, num_vals):
     plt.close(fig)
 
 
+_perfect = torch.tensor([0, 1, 0, 1])
+_inverted = torch.tensor([1, 0, 1, 0])
+
+
+@pytest.mark.parametrize(
+    ("metric", "preds", "target"),
+    [
+        pytest.param(BinaryMatthewsCorrCoef(), _inverted, _perfect, id="binary matthews corr coef"),
+        pytest.param(MulticlassMatthewsCorrCoef(num_classes=2), _inverted, _perfect, id="multiclass matthews"),
+        pytest.param(
+            MultilabelMatthewsCorrCoef(num_labels=2),
+            torch.stack([_inverted, _inverted], dim=1),
+            torch.stack([_perfect, _perfect], dim=1),
+            id="multilabel matthews",
+        ),
+        pytest.param(BinaryCohenKappa(), _inverted, _perfect, id="binary cohen kappa"),
+        pytest.param(MulticlassCohenKappa(num_classes=2), _inverted, _perfect, id="multiclass cohen kappa"),
+        pytest.param(KendallRankCorrCoef(), _inverted.float(), _perfect.float(), id="kendall rank corr coef"),
+        pytest.param(CosineSimilarity(), -_perfect[None].float(), _perfect[None].float(), id="cosine similarity"),
+        pytest.param(ExplainedVariance(), _inverted.float(), _perfect.float(), id="explained variance"),
+    ],
+)
+def test_plot_shows_negative_scores(metric, preds, target):
+    """Test that metrics which can be negative do not plot negative values below the y-axis."""
+    value = metric(preds, target)
+    assert value < 0
+    fig, ax = metric.plot(value)
+    assert ax.get_ylim()[0] <= value
+    plt.close(fig)
+
+
 @pytest.mark.parametrize(
     ("n", "expected_row", "expected_col"),
     [(1, 1, 1), (2, 1, 2), (3, 2, 2), (4, 2, 2), (5, 2, 3), (6, 2, 3), (7, 3, 3), (8, 3, 3), (9, 3, 3), (10, 3, 4)],

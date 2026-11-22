@@ -117,7 +117,7 @@ class KendallRankCorrCoef(Metric):
     is_differentiable = False
     higher_is_better = None
     full_state_update = True
-    plot_lower_bound: float = 0.0
+    plot_lower_bound: float = -1.0
     plot_upper_bound: float = 1.0
 
     preds: List[Tensor]
