@@ -68,7 +68,7 @@ class NormalizedMutualInfoScore(MutualInfoScore):
     """
 
     is_differentiable: bool = True
-    higher_is_better: Optional[bool] = None
+    higher_is_better: Optional[bool] = True
     full_state_update: bool = False
     plot_lower_bound: float = 0.0
     plot_upper_bound: float = 0.0
