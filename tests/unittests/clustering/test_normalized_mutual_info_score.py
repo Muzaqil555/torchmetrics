@@ -96,3 +96,14 @@ def test_normalized_mutual_info_score_functional_is_symmetric(
             normalized_mutual_info_score(p, t, average_method),
             normalized_mutual_info_score(t, p, average_method),
         )
+
+
+def test_normalized_mutual_info_score_plot_shows_value():
+    """Check that the plot's y-axis covers the [0, 1] range of the score."""
+    plt = pytest.importorskip("matplotlib.pyplot")
+    metric = NormalizedMutualInfoScore()
+    value = metric(torch.tensor([0, 0, 1, 1, 2, 2]), torch.tensor([0, 0, 1, 1, 1, 1]))
+    fig, ax = metric.plot(value)
+    bottom, top = ax.get_ylim()
+    assert bottom <= 0.0 < value < 1.0 <= top
+    plt.close(fig)
